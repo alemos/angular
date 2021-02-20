@@ -6,10 +6,12 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {Expression, ExternalExpr} from '@angular/compiler';
+
 import {AbsoluteFsPath} from '../../file_system';
 import {ClassDeclaration} from '../../reflection';
 
-import {SemanticSymbol} from './api';
+import {SemanticReference, SemanticSymbol} from './api';
 
 export interface SemanticDependencyResult {
   /**
@@ -189,6 +191,13 @@ export class SemanticDepGraphUpdater {
     return needsEmit;
   }
 
+  getSemanticReference(decl: ClassDeclaration, expr: Expression): SemanticReference {
+    return {
+      symbol: this.getSymbol(decl),
+      importPath: getImportPath(expr),
+    };
+  }
+
   getSymbol(decl: ClassDeclaration): SemanticSymbol {
     const symbol = this.newGraph.getSymbolByDecl(decl);
     if (symbol === null) {
@@ -211,5 +220,13 @@ export class SemanticDepGraphUpdater {
     const symbol = new OpaqueSymbol(decl);
     this.opaqueSymbols.set(decl, symbol);
     return symbol;
+  }
+}
+
+function getImportPath(expr: Expression): string|null {
+  if (expr instanceof ExternalExpr) {
+    return `${expr.value.moduleName}\$${expr.value.name}`;
+  } else {
+    return null;
   }
 }

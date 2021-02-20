@@ -5,7 +5,7 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-import {SemanticSymbol} from './api';
+import {SemanticReference, SemanticSymbol} from './api';
 
 /**
  * Determines whether the provided symbols represent the same declaration.
@@ -22,6 +22,24 @@ export function isSymbolEqual(a: SemanticSymbol, b: SemanticSymbol): boolean {
   }
 
   return a.path === b.path && a.identifier === b.identifier;
+}
+
+/**
+ * Determines whether the provided references to a semantic symbol are still equal, i.e. represent
+ * the same symbol and are imported by the same path.
+ */
+export function isReferenceEqual(a: SemanticReference, b: SemanticReference): boolean {
+  if (!isSymbolEqual(a.symbol, b.symbol)) {
+    // If the reference's target symbols are different, the reference itself is different.
+    return false;
+  }
+
+  if (a.importPath === null || b.importPath === null) {
+    // If no import path is known for either of the references they are considered different.
+    return false;
+  }
+
+  return a.importPath === b.importPath;
 }
 
 export function referenceEquality<T>(a: T, b: T): boolean {

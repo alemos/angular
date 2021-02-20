@@ -72,28 +72,25 @@ export abstract class SemanticSymbol {
   isEmitAffected?(previousSymbol: SemanticSymbol, publicApiAffected: Set<SemanticSymbol>): boolean;
 }
 
+/**
+ * Represents a reference to a semantic symbol that has been emitted into a source file. The
+ * reference may refer to the symbol using a different name than the semantic symbol's declared
+ * name, e.g. in case a re-export under a different name was chosen by a reference emitter.
+ * Consequently, to know that an emitted reference is still valid not only requires that the
+ * semantic symbol is still valid, but also that the path by which the symbol is imported has not
+ * changed.
+ */
+export interface SemanticReference {
+  symbol: SemanticSymbol;
+
+  /**
+   * The path by which the symbol has been referenced.
+   */
+  importPath: string|null;
+}
+
 function getSymbolIdentifier(decl: ClassDeclaration): string|null {
   if (!ts.isSourceFile(decl.parent)) {
-    return null;
-  }
-
-  if (!hasExportModifier(decl)) {
-    // If the declaration is not itself exported, then it is still possible for the declaration
-    // to be exported elsewhere, possibly using a different exported name. Therefore, we cannot
-    // consider the declaration's own name as its unique identifier.
-    //
-    // For example, renaming the name by which this declaration is exported without renaming the
-    // class declaration itself requires that any references to the declarations must be re-emitted
-    // to use its new exported name. The semantic dependency graph would be unaware of this rename
-    // however, hence non-exported declarations are excluded from semantic tracking by not assigning
-    // them a unique identifier.
-    //
-    // This relies on the assumption that the reference emitter prefers the direct export of the
-    // declaration. This is currently not the case however; the reference emitter chooses the first
-    // export in the source file that corresponds with the reference. As such, if a class is itself
-    // exported _and_ a secondary export of the class appears above it, renaming that secondary
-    // export would not currently trigger re-emit of any symbols that refer to the declaration by
-    // its previous name.
     return null;
   }
 
@@ -101,9 +98,4 @@ function getSymbolIdentifier(decl: ClassDeclaration): string|null {
   // Other scenarios are currently not supported and causes the symbol not to be identified
   // across rebuilds, unless the declaration node has not changed.
   return decl.name.text;
-}
-
-function hasExportModifier(decl: ClassDeclaration): boolean {
-  return decl.modifiers !== undefined &&
-      decl.modifiers.some(mod => mod.kind === ts.SyntaxKind.ExportKeyword);
 }

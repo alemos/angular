@@ -12,8 +12,7 @@ import * as ts from 'typescript';
 import {ErrorCode, FatalDiagnosticError, makeDiagnostic, makeRelatedInformation} from '../../diagnostics';
 import {DefaultImportRecorder, Reference, ReferenceEmitter} from '../../imports';
 import {InjectableClassRegistry, MetadataReader, MetadataRegistry} from '../../metadata';
-import {SemanticSymbol} from '../../ngmodule_semantics/src/api';
-import {isArrayEqual, isSymbolEqual} from '../../ngmodule_semantics/src/util';
+import {isArrayEqual, isReferenceEqual, isSymbolEqual, SemanticReference, SemanticSymbol} from '../../ngmodule_semantics';
 import {PartialEvaluator, ResolvedValue} from '../../partial_evaluator';
 import {ClassDeclaration, Decorator, isNamedClassDeclaration, ReflectionHost, reflectObjectLiteral, typeNodeToValueExpr} from '../../reflection';
 import {NgModuleRouteAnalyzer} from '../../routing';
@@ -50,9 +49,11 @@ export interface NgModuleResolution {
  * Represents an Angular NgModule.
  */
 export class NgModuleSymbol extends SemanticSymbol {
-  private remotelyScopedComponents:
-      {component: SemanticSymbol, usedDirectives: SemanticSymbol[], usedPipes: SemanticSymbol[]}[] =
-          [];
+  private remotelyScopedComponents: {
+    component: SemanticSymbol,
+    usedDirectives: SemanticReference[],
+    usedPipes: SemanticReference[]
+  }[] = [];
 
   isPublicApiAffected(previousSymbol: SemanticSymbol): boolean {
     if (!(previousSymbol instanceof NgModuleSymbol)) {
@@ -84,7 +85,7 @@ export class NgModuleSymbol extends SemanticSymbol {
         return true;
       }
 
-      if (!isArrayEqual(currEntry.usedDirectives, prevEntry.usedDirectives, isSymbolEqual)) {
+      if (!isArrayEqual(currEntry.usedDirectives, prevEntry.usedDirectives, isReferenceEqual)) {
         // The list of used directives or their order has changed. Since this NgModule emits
         // references to the list of used directives, it should be re-emitted to update this list.
         // Note: the NgModule does not have to be re-emitted when any of the directives has had
@@ -93,7 +94,7 @@ export class NgModuleSymbol extends SemanticSymbol {
         return true;
       }
 
-      if (!isArrayEqual(currEntry.usedPipes, prevEntry.usedPipes, isSymbolEqual)) {
+      if (!isArrayEqual(currEntry.usedPipes, prevEntry.usedPipes, isReferenceEqual)) {
         return true;
       }
     }
@@ -101,8 +102,8 @@ export class NgModuleSymbol extends SemanticSymbol {
   }
 
   addRemotelyScopedComponent(
-      component: SemanticSymbol, usedDirectives: SemanticSymbol[],
-      usedPipes: SemanticSymbol[]): void {
+      component: SemanticSymbol, usedDirectives: SemanticReference[],
+      usedPipes: SemanticReference[]): void {
     this.remotelyScopedComponents.push({component, usedDirectives, usedPipes});
   }
 }
